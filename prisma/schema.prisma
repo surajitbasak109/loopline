@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organizations Organization[]
+}
+
+model Organization {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  // NOTE: this is a *publishable* key (think Stripe's pk_...). It ships inside
+  // the widget on the customer's own page, so it is not a secret and is stored
+  // in plaintext for direct lookup. Its safety comes entirely from being scoped
+  // to read / create-feedback / vote — never from being hidden.
+  publicApiKey String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  posts            Post[]
+  changelogEntries ChangelogEntry[]
+
+  @@index([publicApiKey])
+}
+
+enum PostStatus {
+  OPEN
+  PLANNED
+  IN_PROGRESS
+  DONE
+  DECLINED
+}
+
+model Post {
+  id             String     @id @default(cuid())
+  title          String
+  body           String?    @db.Text
+  status         PostStatus @default(OPEN)
+  voteCount      Int        @default(0) // denormalised for cheap sort-by-votes
+  submitterEmail String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  votes Vote[]
+
+  // Every public/admin read filters by org first, then status or votes.
+  @@index([organizationId, status])
+  @@index([organizationId, voteCount])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  voterId   String // anonymous cookie/uuid set by the widget
+  createdAt DateTime @default(now())
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // This is the dedup rule. It lives in the database, not in app code, so a
+  // race between two simultaneous votes can't slip a duplicate through.
+  @@unique([postId, voterId])
+  @@index([postId])
+}
+
+model ChangelogEntry {
+  id          String    @id @default(cuid())
+  title       String
+  body        String    @db.Text // markdown
+  slug        String
+  publishedAt DateTime? // null = draft, so drafts come for free
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, publishedAt])
+}

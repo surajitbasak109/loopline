@@ -1,0 +1,8 @@
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  sharp: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - electron-to-chromium
+  - es-to-primitive
