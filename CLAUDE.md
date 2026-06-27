@@ -112,8 +112,17 @@ app/api/auth/[...nextauth]/route.ts      # Auth.js catch-all handler
 lib/rate-limit.ts                        # fixed-window in-memory rate limiter (createRateLimiter factory + singleton)
 lib/auth/authorize.ts                    # credentials authorize logic (bcrypt check, Zod validation)
 lib/auth/session.ts                      # withAdminSession wrapper — mirrors withPublicApiKey for admin routes
+auth.config.ts                           # Edge-safe NextAuth config for middleware (no Prisma/bcrypt)
 middleware.ts                            # protects /api/admin/* and /dashboard/* via Auth.js
 auth.ts                                  # NextAuth config: Credentials provider, JWT strategy, session callbacks
+lib/validations/register.ts             # shared Zod schema for registration (used by API + frontend)
+components/ui/Button.tsx                 # reusable button (primary/secondary/ghost, loading spinner)
+components/ui/Input.tsx                  # reusable input (label, error, hint, prefix slot)
+components/ui/Alert.tsx                  # reusable alert (error/success/info)
+app/login/page.tsx                       # login form — signIn("credentials"), redirects to /dashboard
+app/register/page.tsx                    # two-step registration wizard with client+server Zod validation
+app/dashboard/page.tsx                   # dashboard stub — server component, redirects if no session
+app/api/auth/register/route.ts           # POST — creates User + Organization, hashes password, 409 on duplicate
 app/api/admin/posts/route.ts             # GET list (filterable by status)
 app/api/admin/posts/[id]/route.ts        # PATCH status + DELETE
 app/api/admin/changelog/route.ts         # GET list (drafts + published) + POST create
@@ -178,12 +187,20 @@ test DB.
   floating button + iframe; `app/widget/page.tsx` serves the widget UI inside
   the iframe; postMessage protocol: widget→parent `resize` + `close`,
   parent→widget `open` / `close`; test page at `/widget-test.html`
+- Dashboard UI foundation:
+  - `components/ui/` — `Button`, `Input`, `Alert` reusable components
+  - `/login` — credentials form, `React.SubmitEvent`, `cursor-pointer` fix
+  - `/register` — two-step wizard; step 1 validates with `registerSchema.pick()`,
+    step 2 submits full schema; client+server Zod (shared `lib/validations/register.ts`)
+  - `/dashboard` — protected stub, redirects to `/login` if no session
+  - `auth.config.ts` — Edge-safe config split from `auth.ts`; fixes mariadb
+    crash in middleware edge worker; `z.flattenError()` migration (Zod v4)
 
 ### Pending (roughly in build order)
-1. Dashboard UI
-2. Public changelog page (ISR)
-3. CI/CD pipeline + deployment
-9. CI/CD pipeline + deployment
+1. Homepage / landing page
+2. Full dashboard UI (posts management, changelog management, API key display)
+3. Public changelog page (ISR)
+4. CI/CD pipeline + deployment
 
 ## Conventions
 
