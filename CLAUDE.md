@@ -114,9 +114,15 @@ lib/auth/authorize.ts                    # credentials authorize logic (bcrypt c
 lib/auth/session.ts                      # withAdminSession wrapper — mirrors withPublicApiKey for admin routes
 middleware.ts                            # protects /api/admin/* and /dashboard/* via Auth.js
 auth.ts                                  # NextAuth config: Credentials provider, JWT strategy, session callbacks
+app/api/admin/posts/route.ts             # GET list (filterable by status)
+app/api/admin/posts/[id]/route.ts        # PATCH status + DELETE
+app/api/admin/changelog/route.ts         # GET list (drafts + published) + POST create
+app/api/admin/changelog/[id]/route.ts    # PATCH update + DELETE
+app/api/admin/changelog/[id]/publish/route.ts  # POST publish (idempotent)
 tests/public-api.authz.test.ts           # authz / IDOR / vote-dedup / vote-route tests
 tests/rate-limit.test.ts                 # unit + integration tests for rate limiting
 tests/dashboard-auth.test.ts             # authorize logic + withAdminSession wrapper tests
+tests/admin-api.test.ts                  # admin CRUD + changelog + privilege-escalation tests
 tests/setup.ts                           # loads .env.test before Prisma initialises
 ```
 
@@ -157,18 +163,16 @@ test DB.
 - Dashboard auth: Auth.js v5 with Credentials provider; JWT sessions;
   `withAdminSession` wrapper resolves org from session (same IDOR pattern
   as public path); middleware protects `/api/admin/*` and `/dashboard/*`
-- Test suite (27 tests): authz, IDOR, vote dedup, vote route, rate limit
-  unit + integration, credentials authorize, session wrapper; files run
-  sequentially (`fileParallelism: false`)
+- Admin API: all routes session-guarded via `withAdminSession`
+  - Posts: `GET` (list, filter by status), `PATCH` (status change), `DELETE`
+  - Changelog: `GET` (list incl. drafts), `POST` (create), `PATCH` (update),
+    `DELETE`, `POST .../publish` (idempotent draft → published)
+  - Slug uniqueness enforced at DB level (P2002 → 409)
+- Privilege-escalation tests: public `pk_` key → 401 on all admin routes
+- Test suite (47 tests) across 4 files; sequential execution
 
 ### Pending (roughly in build order)
-1. Admin API (`/api/admin/*`) — full CRUD, status changes, changelog management,
-   all session-guarded
-3. Dashboard auth — session-based (Auth.js or hand-rolled credentials)
-4. Admin API (`/api/admin/*`) — full CRUD, status changes, changelog management,
-   all session-guarded
-5. Privilege-escalation test — a public `pk_` key must get 401/403 on admin routes
-6. The embeddable widget — script tag → iframe → hosted widget route,
+1. The embeddable widget — script tag → iframe → hosted widget route,
    `postMessage` for resize and open/close
 7. Dashboard UI
 8. Public changelog page (ISR)
