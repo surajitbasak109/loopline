@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Alert } from "@/components/ui/Alert";
 
 export default function LoginForm() {
@@ -55,9 +56,8 @@ export default function LoginForm() {
             placeholder="you@example.com"
           />
 
-          <Input
+          <PasswordInput
             label="Password"
-            type="password"
             required
             autoComplete="current-password"
             value={form.password}

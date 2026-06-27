@@ -7,6 +7,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Alert } from "@/components/ui/Alert";
 import { registerSchema } from "@/lib/validations/register";
 
@@ -162,9 +163,8 @@ export default function RegisterForm() {
               placeholder="you@example.com"
               error={fieldErrors.email?.[0]}
             />
-            <Input
+            <PasswordInput
               label="Password"
-              type="password"
               required
               autoComplete="new-password"
               value={form.password}

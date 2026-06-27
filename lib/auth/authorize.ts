@@ -13,12 +13,17 @@ export async function authorize(credentials: unknown) {
 
   const user = await prisma.user.findUnique({
     where: { email: parsed.data.email },
-    select: { id: true, email: true, name: true, passwordHash: true },
+    select: { id: true, email: true, name: true, passwordHash: true, emailVerified: true },
   });
   if (!user) return null;
 
   const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
   if (!valid) return null;
 
-  return { id: user.id, email: user.email, name: user.name };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    emailVerified: user.emailVerified?.toISOString() ?? null,
+  };
 }

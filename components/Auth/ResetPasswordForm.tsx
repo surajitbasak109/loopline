@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Alert } from "@/components/ui/Alert";
 
 export default function ResetPasswordForm() {
@@ -66,9 +66,8 @@ export default function ResetPasswordForm() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {error && <Alert variant="error">{error}</Alert>}
 
-          <Input
+          <PasswordInput
             label="New password"
-            type="password"
             required
             autoComplete="new-password"
             value={password}
@@ -76,9 +75,8 @@ export default function ResetPasswordForm() {
             placeholder="Min. 8 characters"
           />
 
-          <Input
+          <PasswordInput
             label="Confirm password"
-            type="password"
             required
             autoComplete="new-password"
             value={confirm}

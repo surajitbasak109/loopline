@@ -10,6 +10,7 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
+  if (!session.user.emailVerified) redirect("/verify-email?pending=true");
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

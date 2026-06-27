@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/Alert";
 export default function VerifyEmailStatus() {
   const params = useSearchParams();
   const success = params.get("success") === "true";
+  const pending = params.get("pending") === "true";
   const error = params.get("error");
 
   const [email, setEmail] = useState("");
@@ -37,6 +38,13 @@ export default function VerifyEmailStatus() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-8 py-8 text-center">
+        {pending && !success && !error && (
+          <div className="mb-6 rounded-lg bg-yellow-50 border border-yellow-100 text-yellow-700 text-sm px-4 py-3 text-left">
+            You need to verify your email before accessing the dashboard.
+            Check your inbox or resend the link below.
+          </div>
+        )}
+
         {success && (
           <>
             <div className="text-4xl mb-4">✅</div>
