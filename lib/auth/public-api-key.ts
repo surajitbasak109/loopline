@@ -20,7 +20,7 @@ export type PublicApiContext = {
   org: Organization;
 };
 
-type RouteContext = { params: Record<string, string> };
+type RouteContext = { params: Promise<Record<string, string>> };
 
 type PublicHandler = (
   req: NextRequest,
