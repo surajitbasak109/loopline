@@ -147,6 +147,7 @@ tests/public-api.authz.test.ts           # authz / IDOR / vote-dedup / vote-rout
 tests/rate-limit.test.ts                 # unit + integration tests for rate limiting
 tests/dashboard-auth.test.ts             # authorize logic + withAdminSession wrapper tests
 tests/admin-api.test.ts                  # admin CRUD + changelog + privilege-escalation tests
+tests/auth-email.test.ts                 # forgot-password, reset-password, verify-email, resend-verification
 tests/setup.ts                           # loads .env.test before Prisma initialises
 ```
 
@@ -229,6 +230,9 @@ test DB.
     resend endpoint available; always-200 responses to avoid email enumeration
   - New pages: `/forgot-password`, `/reset-password`, `/verify-email`
   - "Forgot password?" link added to login form
+- Test suite (62 tests) across 5 files: always-200 email enumeration guard,
+  token hashed in DB, expired/invalid token → 400, verified users blocked
+  from resend; sendEmail mocked via vi.mock to avoid SMTP in CI
 
 ### Pending (roughly in build order)
 1. Full dashboard UI (posts management, changelog management, API key display)
