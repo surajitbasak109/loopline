@@ -3,8 +3,11 @@ import { randomBytes } from "crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withPublicApiKey, handlePreflight } from "@/lib/auth/public-api-key";
+import { rateLimiter } from "@/lib/rate-limit";
 
 const VOTER_COOKIE = "lp_voter";
+// 5 votes per hour per voter cookie — on top of the IP limit in withPublicApiKey.
+const COOKIE_VOTE_LIMIT = { limit: 5, windowMs: 60 * 60_000 };
 
 // POST /api/public/posts/[id]/vote — cast a vote on a feedback post.
 // Voter identity comes from a long-lived httpOnly cookie set here on first vote.
@@ -26,6 +29,18 @@ export const POST = withPublicApiKey(async (req, { org }, routeCtx) => {
 
   const existingVoterId = req.cookies.get(VOTER_COOKIE)?.value;
   const voterId = existingVoterId ?? randomBytes(16).toString("base64url");
+
+  // Secondary rate limit: cap votes per voter cookie to slow persistent abusers
+  // who rotate IPs but keep their cookie.
+  if (existingVoterId) {
+    const rl = rateLimiter.check(`vote-cookie:${existingVoterId}`, COOKIE_VOTE_LIMIT);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, {
+        status: 429,
+        headers: { "Retry-After": String(rl.retryAfter) },
+      });
+    }
+  }
 
   try {
     await prisma.$transaction([

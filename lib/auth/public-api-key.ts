@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import type { Organization } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { rateLimiter, getIp } from "@/lib/rate-limit";
+
+// 20 mutating requests per minute per IP across all public POST routes.
+const IP_LIMIT = { limit: 20, windowMs: 60_000 };
 
 const KEY_PREFIX = "pk_";
 
@@ -40,6 +44,20 @@ export function withPublicApiKey(handler: PublicHandler) {
 
     if (!key || !key.startsWith(KEY_PREFIX)) {
       return withCors(NextResponse.json({ error: "Missing or malformed API key" }, { status: 401 }));
+    }
+
+    // Rate-limit mutating requests by IP before hitting the database.
+    if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE") {
+      const ip = getIp(req);
+      const rl = rateLimiter.check(`ip:${ip}`, IP_LIMIT);
+      if (!rl.allowed) {
+        return withCors(
+          NextResponse.json({ error: "Too many requests" }, {
+            status: 429,
+            headers: { "Retry-After": String(rl.retryAfter) },
+          }),
+        );
+      }
     }
 
     const org = await prisma.organization.findUnique({
