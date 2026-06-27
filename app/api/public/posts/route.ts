@@ -40,7 +40,7 @@ export const POST = withPublicApiKey(async (req, { org }) => {
 
   const parsed = createSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
+    return NextResponse.json({ error: z.flattenError(parsed.error) }, { status: 422 });
   }
 
   const post = await prisma.post.create({

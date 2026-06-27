@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authorize } from "@/lib/auth/authorize";
+import { authConfig } from "./auth.config";
 
 declare module "next-auth" {
   interface Session {
@@ -9,9 +10,8 @@ declare module "next-auth" {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [
-    Credentials({ authorize }),
-  ],
+  ...authConfig,
+  providers: [Credentials({ authorize })],
   session: { strategy: "jwt" },
   callbacks: {
     jwt({ token, user }) {
@@ -23,5 +23,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session;
     },
   },
-  pages: { signIn: "/login" },
 });

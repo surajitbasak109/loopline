@@ -15,7 +15,7 @@ export const GET = withAdminSession(async (req, { org }) => {
   const parsed = filterSchema.safeParse({ status: searchParams.get("status") ?? undefined });
 
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
+    return NextResponse.json({ error: z.flattenError(parsed.error) }, { status: 422 });
   }
 
   const posts = await prisma.post.findMany({

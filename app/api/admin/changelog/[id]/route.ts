@@ -22,7 +22,7 @@ export const PATCH = withAdminSession(async (req, { org }, routeCtx) => {
 
   const parsed = patchSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
+    return NextResponse.json({ error: z.flattenError(parsed.error) }, { status: 422 });
   }
 
   const existing = await prisma.changelogEntry.findUnique({
