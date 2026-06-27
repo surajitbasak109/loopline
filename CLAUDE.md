@@ -119,6 +119,10 @@ app/api/admin/posts/[id]/route.ts        # PATCH status + DELETE
 app/api/admin/changelog/route.ts         # GET list (drafts + published) + POST create
 app/api/admin/changelog/[id]/route.ts    # PATCH update + DELETE
 app/api/admin/changelog/[id]/publish/route.ts  # POST publish (idempotent)
+app/widget/page.tsx                      # hosted widget page (served inside iframe)
+app/widget/WidgetPanel.tsx               # client component: feedback list, submit form, vote buttons
+public/widget.js                         # loader script — injects button + iframe, wires postMessage
+public/widget-test.html                  # local test page simulating a customer's website
 tests/public-api.authz.test.ts           # authz / IDOR / vote-dedup / vote-route tests
 tests/rate-limit.test.ts                 # unit + integration tests for rate limiting
 tests/dashboard-auth.test.ts             # authorize logic + withAdminSession wrapper tests
@@ -170,12 +174,15 @@ test DB.
   - Slug uniqueness enforced at DB level (P2002 → 409)
 - Privilege-escalation tests: public `pk_` key → 401 on all admin routes
 - Test suite (47 tests) across 4 files; sequential execution
+- Embeddable widget: `public/widget.js` loader (IIFE, vanilla JS) injects a
+  floating button + iframe; `app/widget/page.tsx` serves the widget UI inside
+  the iframe; postMessage protocol: widget→parent `resize` + `close`,
+  parent→widget `open` / `close`; test page at `/widget-test.html`
 
 ### Pending (roughly in build order)
-1. The embeddable widget — script tag → iframe → hosted widget route,
-   `postMessage` for resize and open/close
-7. Dashboard UI
-8. Public changelog page (ISR)
+1. Dashboard UI
+2. Public changelog page (ISR)
+3. CI/CD pipeline + deployment
 9. CI/CD pipeline + deployment
 
 ## Conventions
