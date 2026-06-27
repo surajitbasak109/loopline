@@ -108,9 +108,15 @@ lib/prisma.ts                            # PrismaClient singleton w/ MariaDB ada
 lib/auth/public-api-key.ts               # withPublicApiKey wrapper, CORS, handlePreflight, generatePublicApiKey
 app/api/public/posts/route.ts            # GET list + POST create + OPTIONS preflight
 app/api/public/posts/[id]/vote/route.ts  # POST vote + OPTIONS preflight
+app/api/auth/[...nextauth]/route.ts      # Auth.js catch-all handler
 lib/rate-limit.ts                        # fixed-window in-memory rate limiter (createRateLimiter factory + singleton)
+lib/auth/authorize.ts                    # credentials authorize logic (bcrypt check, Zod validation)
+lib/auth/session.ts                      # withAdminSession wrapper — mirrors withPublicApiKey for admin routes
+middleware.ts                            # protects /api/admin/* and /dashboard/* via Auth.js
+auth.ts                                  # NextAuth config: Credentials provider, JWT strategy, session callbacks
 tests/public-api.authz.test.ts           # authz / IDOR / vote-dedup / vote-route tests
 tests/rate-limit.test.ts                 # unit + integration tests for rate limiting
+tests/dashboard-auth.test.ts             # authorize logic + withAdminSession wrapper tests
 tests/setup.ts                           # loads .env.test before Prisma initialises
 ```
 
@@ -120,6 +126,7 @@ tests/setup.ts                           # loads .env.test before Prisma initial
 
 ```
 DATABASE_URL="mysql://loopline:<password>@localhost:3306/loopline"
+AUTH_SECRET="<random 32+ char string — generate with: openssl rand -base64 32>"
 ```
 
 Tests run against a **separate throwaway database** (the suite wipes tables
@@ -147,11 +154,16 @@ test DB.
 - Rate limiting: fixed-window in-memory counter; 20 POST req/min per IP
   (all public routes via `withPublicApiKey`), 5 votes/hour per voter cookie
   (vote route); returns 429 + `Retry-After`
-- Test suite (20 tests): authz, IDOR, vote dedup, vote route, rate limit
-  unit + integration; files run sequentially (`fileParallelism: false`)
+- Dashboard auth: Auth.js v5 with Credentials provider; JWT sessions;
+  `withAdminSession` wrapper resolves org from session (same IDOR pattern
+  as public path); middleware protects `/api/admin/*` and `/dashboard/*`
+- Test suite (27 tests): authz, IDOR, vote dedup, vote route, rate limit
+  unit + integration, credentials authorize, session wrapper; files run
+  sequentially (`fileParallelism: false`)
 
 ### Pending (roughly in build order)
-1. Dashboard auth — session-based (Auth.js or hand-rolled credentials)
+1. Admin API (`/api/admin/*`) — full CRUD, status changes, changelog management,
+   all session-guarded
 3. Dashboard auth — session-based (Auth.js or hand-rolled credentials)
 4. Admin API (`/api/admin/*`) — full CRUD, status changes, changelog management,
    all session-guarded
