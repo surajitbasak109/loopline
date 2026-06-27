@@ -149,6 +149,15 @@ tests/dashboard-auth.test.ts             # authorize logic + withAdminSession wr
 tests/admin-api.test.ts                  # admin CRUD + changelog + privilege-escalation tests
 tests/auth-email.test.ts                 # forgot-password, reset-password, verify-email, resend-verification
 tests/setup.ts                           # loads .env.test before Prisma initialises
+components/Dashboard/SidebarNav.tsx      # client nav with usePathname() active-state highlighting
+components/Dashboard/StatsCard.tsx       # stat card (label + number)
+components/Dashboard/StatusBadge.tsx     # coloured pill for PostStatus values
+components/Dashboard/PostsTable.tsx      # client: filter tabs, inline status change, delete
+components/Dashboard/ChangelogList.tsx   # client: entry list, create form, publish, delete
+components/Dashboard/OrgSettings.tsx     # client: org name/slug/API-key display with copy button
+app/(app)/(dashboard)/dashboard/feedback/page.tsx   # server page — fetches posts, passes to PostsTable
+app/(app)/(dashboard)/dashboard/changelog/page.tsx  # server page — fetches entries, passes to ChangelogList
+app/(app)/(dashboard)/dashboard/settings/page.tsx   # server page — fetches org, passes to OrgSettings
 ```
 
 ## Environment
@@ -233,11 +242,19 @@ test DB.
 - Test suite (62 tests) across 5 files: always-200 email enumeration guard,
   token hashed in DB, expired/invalid token → 400, verified users blocked
   from resend; sendEmail mocked via vi.mock to avoid SMTP in CI
+- Full dashboard UI:
+  - `SidebarNav` client component — `usePathname()` active-state highlighting
+  - `/dashboard` overview — 4 stat cards (total feedback, open, changelog entries, published)
+  - `/dashboard/feedback` — all posts, filter tabs by status, inline status dropdown, delete
+  - `/dashboard/changelog` — entry list (Draft/Published badges), inline create form
+    (Title, Slug auto-filled from title, Body markdown), Publish + Delete actions
+  - `/dashboard/settings` — org name, slug, publishable API key with one-click copy
+  - Client components define local PostStatus types (no @prisma/client import); server
+    pages query Prisma directly and serialize dates before passing to client components
 
 ### Pending (roughly in build order)
-1. Full dashboard UI (posts management, changelog management, API key display)
-2. Public changelog page (ISR)
-3. CI/CD pipeline + deployment
+1. Public changelog page (ISR)
+2. CI/CD pipeline + deployment
 
 ## Conventions
 
