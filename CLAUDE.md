@@ -108,7 +108,9 @@ lib/prisma.ts                            # PrismaClient singleton w/ MariaDB ada
 lib/auth/public-api-key.ts               # withPublicApiKey wrapper, CORS, handlePreflight, generatePublicApiKey
 app/api/public/posts/route.ts            # GET list + POST create + OPTIONS preflight
 app/api/public/posts/[id]/vote/route.ts  # POST vote + OPTIONS preflight
+lib/rate-limit.ts                        # fixed-window in-memory rate limiter (createRateLimiter factory + singleton)
 tests/public-api.authz.test.ts           # authz / IDOR / vote-dedup / vote-route tests
+tests/rate-limit.test.ts                 # unit + integration tests for rate limiting
 tests/setup.ts                           # loads .env.test before Prisma initialises
 ```
 
@@ -142,12 +144,14 @@ test DB.
   Zod-validated), `OPTIONS` (preflight)
 - Vote route: `POST /api/public/posts/[id]/vote` — anonymous voter cookie,
   atomic voteCount increment, P2002 → 409, cross-org IDOR blocked
-- Authorization test suite (9 tests): missing/invalid key → 401, cross-tenant
-  isolation, body-injection IDOR, DB-level vote dedup, vote happy path,
-  duplicate vote → 409, cross-org vote → 404
+- Rate limiting: fixed-window in-memory counter; 20 POST req/min per IP
+  (all public routes via `withPublicApiKey`), 5 votes/hour per voter cookie
+  (vote route); returns 429 + `Retry-After`
+- Test suite (20 tests): authz, IDOR, vote dedup, vote route, rate limit
+  unit + integration; files run sequentially (`fileParallelism: false`)
 
 ### Pending (roughly in build order)
-1. Rate limiting on public endpoints (by IP and by voter cookie)
+1. Dashboard auth — session-based (Auth.js or hand-rolled credentials)
 3. Dashboard auth — session-based (Auth.js or hand-rolled credentials)
 4. Admin API (`/api/admin/*`) — full CRUD, status changes, changelog management,
    all session-guarded
