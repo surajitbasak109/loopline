@@ -100,14 +100,16 @@ cheap sort-by-votes.
 ## Project structure (relevant files)
 
 ```
-prisma/schema.prisma             # 6 models, mysql provider
-prisma.config.ts                 # CLI connection config (reads DATABASE_URL)
-next.config.ts                   # serverExternalPackages
-vitest.config.ts                 # tsconfig path resolution for tests
-lib/prisma.ts                    # PrismaClient singleton w/ MariaDB adapter
-lib/auth/public-api-key.ts       # withPublicApiKey wrapper, CORS, handlePreflight, generatePublicApiKey
-app/api/public/posts/route.ts    # GET list + POST create + OPTIONS preflight
-tests/public-api.authz.test.ts   # authz / IDOR / vote-dedup tests
+prisma/schema.prisma                     # 6 models, mysql provider
+prisma.config.ts                         # CLI connection config (reads DATABASE_URL)
+next.config.ts                           # serverExternalPackages
+vitest.config.ts                         # tsconfig path resolution for tests
+lib/prisma.ts                            # PrismaClient singleton w/ MariaDB adapter
+lib/auth/public-api-key.ts               # withPublicApiKey wrapper, CORS, handlePreflight, generatePublicApiKey
+app/api/public/posts/route.ts            # GET list + POST create + OPTIONS preflight
+app/api/public/posts/[id]/vote/route.ts  # POST vote + OPTIONS preflight
+tests/public-api.authz.test.ts           # authz / IDOR / vote-dedup / vote-route tests
+tests/setup.ts                           # loads .env.test before Prisma initialises
 ```
 
 ## Environment
@@ -134,20 +136,18 @@ test DB.
 ### Done
 - Project scaffolded (Next 16, TS, Tailwind v4, ESLint, Turbopack, pnpm)
 - Prisma 7 + MySQL (MariaDB adapter) wired up
-- Data model defined (6 models)
+- Data model defined (6 models), first migration applied
 - Public API-key middleware (`withPublicApiKey`) with org resolution + CORS
 - Public posts route: `GET` (list, org-scoped, sorted by votes), `POST` (create,
   Zod-validated), `OPTIONS` (preflight)
-- Authorization test suite: missing/invalid key → 401, cross-tenant isolation,
-  body-injection IDOR, DB-level vote dedup
-
-### In progress
-- First migration + `pnpm prisma generate` (clearing setup errors)
+- Vote route: `POST /api/public/posts/[id]/vote` — anonymous voter cookie,
+  atomic voteCount increment, P2002 → 409, cross-org IDOR blocked
+- Authorization test suite (9 tests): missing/invalid key → 401, cross-tenant
+  isolation, body-injection IDOR, DB-level vote dedup, vote happy path,
+  duplicate vote → 409, cross-org vote → 404
 
 ### Pending (roughly in build order)
-1. Vote route — `POST /api/public/posts/[id]/vote`; sets an anonymous voter
-   cookie; relies on the `@@unique` constraint for dedup
-2. Rate limiting on public endpoints (by IP and by voter cookie)
+1. Rate limiting on public endpoints (by IP and by voter cookie)
 3. Dashboard auth — session-based (Auth.js or hand-rolled credentials)
 4. Admin API (`/api/admin/*`) — full CRUD, status changes, changelog management,
    all session-guarded
