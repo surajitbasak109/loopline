@@ -11,8 +11,17 @@ model User {
   email        String   @unique
   name         String?
   passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  // Email verification
+  emailVerified DateTime?
+  verifyToken   String?   @unique // SHA-256 hash of the token sent by email
+
+  // Password reset
+  resetToken       String?   @unique // SHA-256 hash of the token sent by email
+  resetTokenExpiry DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   organizations Organization[]
 }

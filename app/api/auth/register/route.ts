@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { generatePublicApiKey } from "@/lib/auth/public-api-key";
 import { registerSchema } from "@/lib/validations/register";
+import { generateToken, sendEmail, verifyEmailTemplate } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   let raw: unknown;
@@ -31,12 +32,14 @@ export async function POST(req: NextRequest) {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
+  const { plain, hashed } = generateToken();
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       name,
       email,
       passwordHash,
+      verifyToken: hashed,
       organizations: {
         create: {
           name: orgName,
@@ -46,6 +49,11 @@ export async function POST(req: NextRequest) {
       },
     },
   });
+
+  // Send verification email — fire and forget, don't block the response.
+  const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth/verify-email?token=${plain}`;
+  const { subject, html } = verifyEmailTemplate(verifyUrl);
+  sendEmail({ to: user.email, subject, html }).catch(console.error);
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

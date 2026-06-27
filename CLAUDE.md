@@ -125,7 +125,15 @@ app/(app)/(auth)/login/page.tsx                 # login form
 app/(app)/(auth)/register/page.tsx              # two-step registration wizard
 app/(app)/(dashboard)/layout.tsx                # dashboard shell: auth check, topbar, sidebar nav
 app/(app)/(dashboard)/dashboard/page.tsx        # dashboard overview (stub)
-app/api/auth/register/route.ts                  # POST — creates User + Organization, hashes password, 409 on duplicate
+app/api/auth/register/route.ts                  # POST — creates User + Organization, hashes password, sends verification email
+app/api/auth/forgot-password/route.ts           # POST — generates reset token (SHA-256 hashed), emails link
+app/api/auth/reset-password/route.ts            # POST — validates token, updates password, clears token
+app/api/auth/verify-email/route.ts              # GET  — validates verify token, marks emailVerified
+app/api/auth/resend-verification/route.ts       # POST — resends verification email
+lib/email.ts                                    # Nodemailer transporter, generateToken/hashToken, email templates
+components/Auth/ForgotPasswordForm.tsx          # forgot password form (shows success state after send)
+components/Auth/ResetPasswordForm.tsx           # reset password form (reads token from URL)
+components/Auth/VerifyEmailStatus.tsx           # verify email status page + resend form
 app/api/admin/posts/route.ts             # GET list (filterable by status)
 app/api/admin/posts/[id]/route.ts        # PATCH status + DELETE
 app/api/admin/changelog/route.ts         # GET list (drafts + published) + POST create
@@ -149,6 +157,15 @@ tests/setup.ts                           # loads .env.test before Prisma initial
 ```
 DATABASE_URL="mysql://loopline:<password>@localhost:3306/loopline"
 AUTH_SECRET="<random 32+ char string — generate with: openssl rand -base64 32>"
+
+# Email — Mailpit for local dev (install: curl -sL https://raw.githubusercontent.com/axllent/mailpit/develop/install.sh | bash)
+# Start with: mailpit   |   Web UI: http://localhost:8025
+SMTP_HOST="localhost"
+SMTP_PORT="1025"
+SMTP_FROM="Loopline <noreply@loopline.app>"
+
+# Optional — used in email links (defaults to http://localhost:3000)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
 Tests run against a **separate throwaway database** (the suite wipes tables
@@ -201,6 +218,17 @@ test DB.
     auth guard; `z.flattenError()` migration across all routes (Zod v4)
 - Homepage: landing page with nav, hero + code snippet, 6 feature cards,
   how-it-works steps, CTA banner, footer; lives in `app/(www)/page.tsx`
+- Forgot password + email verification:
+  - Mailpit for local SMTP (port 1025, UI at http://localhost:8025)
+  - `lib/email.ts` — Nodemailer transporter, `generateToken` (plain + SHA-256 hash),
+    `hashToken`, HTML email templates
+  - `User` schema: added `emailVerified`, `verifyToken`, `resetToken`, `resetTokenExpiry`
+  - Forgot password: token hashed → stored; plain token → emailed; 1h expiry
+  - Reset password: validates hashed token + expiry, re-hashes new password, clears token
+  - Email verify: register auto-sends; `GET /api/auth/verify-email?token=` marks verified;
+    resend endpoint available; always-200 responses to avoid email enumeration
+  - New pages: `/forgot-password`, `/reset-password`, `/verify-email`
+  - "Forgot password?" link added to login form
 
 ### Pending (roughly in build order)
 1. Full dashboard UI (posts management, changelog management, API key display)
