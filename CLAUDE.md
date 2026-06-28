@@ -260,8 +260,27 @@ test DB.
   - `marked` renders body markdown → HTML; styled with Tailwind arbitrary variants (no plugin)
   - `generateMetadata` for proper `<title>` tags
 
-### Pending (roughly in build order)
-1. CI/CD pipeline + deployment
+- CI/CD:
+  - `.github/workflows/ci.yml` — triggers on push to `main`/`feature/**` and PRs; spins up
+    MySQL 8 service container; runs `pnpm install → prisma migrate deploy → tsc → vitest`
+  - `package.json` `postinstall: "prisma generate"` — Vercel runs this before `next build`
+  - `lib/prisma.ts` updated to handle `?ssl=true` / `?ssl-mode=REQUIRED` query params (Aiven)
+  - `.env.example` with all required vars and comments for local vs production setup
+
+### Deployment (Vercel + Aiven)
+1. Create a **free Aiven MySQL** cluster → copy the Service URI as `DATABASE_URL`
+2. Push the repo to GitHub and import it in **Vercel**
+3. Set env vars in Vercel dashboard (copy from `.env.example`):
+   - `DATABASE_URL` — Aiven Service URI (includes `?ssl-mode=REQUIRED`)
+   - `AUTH_SECRET` — `openssl rand -base64 32`
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` — e.g. Brevo or Resend free tier
+   - `NEXT_PUBLIC_APP_URL` — your Vercel deployment URL
+4. Vercel auto-detects pnpm, runs `postinstall` (prisma generate), then `next build`
+5. Run `prisma migrate deploy` once against the Aiven DB to apply migrations:
+   `DATABASE_URL="<aiven-url>" pnpm prisma migrate deploy`
+
+### Pending
+None — project is feature-complete.
 
 ## Conventions
 

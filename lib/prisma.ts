@@ -3,8 +3,10 @@ import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 // Parse the URL manually so a special character like @ in the password
 // doesn't confuse the adapter's internal `new URL()` call.
+// Also handles ?ssl=true / ?ssl-mode=REQUIRED for managed hosts like Aiven.
 function parseDbUrl(url: string) {
-  const withoutProtocol = url.replace(/^mysql:\/\//, "");
+  const [base, query] = url.split("?");
+  const withoutProtocol = base.replace(/^mysql:\/\//, "");
   const lastAt = withoutProtocol.lastIndexOf("@");
   const credentials = withoutProtocol.slice(0, lastAt);
   const hostAndDb = withoutProtocol.slice(lastAt + 1);
@@ -13,7 +15,19 @@ function parseDbUrl(url: string) {
   const password = credentials.slice(colonIdx + 1);
   const [hostPort, database] = hostAndDb.split("/");
   const [host, portStr] = hostPort.split(":");
-  return { host, port: portStr ? parseInt(portStr, 10) : 3306, user, password, database };
+  const params = query ? new URLSearchParams(query) : null;
+  const ssl =
+    params?.get("ssl") === "true" ||
+    params?.get("ssl-mode") === "REQUIRED" ||
+    params?.get("sslmode") === "require";
+  return {
+    host,
+    port: portStr ? parseInt(portStr, 10) : 3306,
+    user,
+    password,
+    database,
+    ...(ssl ? { ssl: { rejectUnauthorized: false } } : {}),
+  };
 }
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
