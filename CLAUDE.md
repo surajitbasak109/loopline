@@ -160,8 +160,9 @@ app/api/admin/org/regenerate-key/route.ts       # POST — generates new pk_ key
 app/(app)/(dashboard)/dashboard/feedback/page.tsx   # server page — fetches posts, passes to PostsTable
 app/(app)/(dashboard)/dashboard/changelog/page.tsx  # server page — fetches entries, passes to ChangelogList
 app/(app)/(dashboard)/dashboard/settings/page.tsx   # server page — fetches org, passes to OrgSettings
-app/(www)/changelog/[orgSlug]/page.tsx              # public changelog list (ISR, revalidate=60)
+app/(www)/changelog/[orgSlug]/page.tsx              # public changelog list (ISR, revalidate=60, paginated)
 app/(www)/changelog/[orgSlug]/[entrySlug]/page.tsx  # public changelog entry detail (ISR, marked for MD→HTML)
+components/Changelog/ChangelogPagination.tsx        # client: rows-per-page dropdown (10/25/50/100) + prev/next
 ```
 
 ## Environment
@@ -265,6 +266,9 @@ test DB.
   - `revalidate = 60` + `dynamicParams = true`; `generateStaticParams` pre-builds known slugs
   - `marked` renders body markdown → HTML; styled with Tailwind arbitrary variants (no plugin)
   - `generateMetadata` for proper `<title>` tags
+  - Server-side pagination via `?page=` and `?limit=` searchParams (10/25/50/100 per page, default 10)
+  - `ChangelogPagination` client component: rows-per-page dropdown resets to page 1 on change;
+    prev/next navigate via `useRouter`; displays `X–Y of N` count
 
 - CI/CD:
   - `.github/workflows/ci.yml` — triggers on push to `main`/`feature/**` and PRs; spins up
