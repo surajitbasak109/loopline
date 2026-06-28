@@ -23,6 +23,7 @@ correctness, tenant isolation, and tests matter more here than feature breadth.
 - **Validation:** Zod
 - **Tests:** Vitest + `vite-tsconfig-paths`
 - **Runtime:** Node 24 (via nvm)
+- **Email:** Resend SDK (production) / Nodemailer + Mailpit (local dev) — branched on `RESEND_API_KEY`
 - **Import alias:** `@/*` resolves to the project root (no `src/` directory)
 
 ## Architecture — the two trust contexts
@@ -131,7 +132,7 @@ app/api/auth/forgot-password/route.ts           # POST — generates reset token
 app/api/auth/reset-password/route.ts            # POST — validates token, updates password, clears token
 app/api/auth/verify-email/route.ts              # GET  — validates verify token, marks emailVerified
 app/api/auth/resend-verification/route.ts       # POST — resends verification email
-lib/email.ts                                    # Nodemailer transporter, generateToken/hashToken, email templates
+lib/email.ts                                    # Email: Resend SDK (prod, RESEND_API_KEY set) or Nodemailer/Mailpit (dev); generateToken/hashToken, templates
 components/Auth/ForgotPasswordForm.tsx          # forgot password form (shows success state after send)
 components/Auth/ResetPasswordForm.tsx           # reset password form (reads token from URL)
 components/Auth/VerifyEmailStatus.tsx           # verify email status page + resend form
@@ -235,8 +236,8 @@ test DB.
   how-it-works steps, CTA banner, footer; lives in `app/(www)/page.tsx`
 - Forgot password + email verification:
   - Mailpit for local SMTP (port 1025, UI at http://localhost:8025)
-  - `lib/email.ts` — Nodemailer transporter, `generateToken` (plain + SHA-256 hash),
-    `hashToken`, HTML email templates
+  - `lib/email.ts` — dual email backend: Resend SDK when `RESEND_API_KEY` is set
+    (production), Nodemailer + Mailpit otherwise (local dev); `generateToken`, `hashToken`, HTML templates
   - `User` schema: added `emailVerified`, `verifyToken`, `resetToken`, `resetTokenExpiry`
   - Forgot password: token hashed → stored; plain token → emailed; 1h expiry
   - Reset password: validates hashed token + expiry, re-hashes new password, clears token
@@ -283,7 +284,8 @@ test DB.
 3. Set env vars in Vercel dashboard (copy from `.env.example`):
    - `DATABASE_URL` — Aiven Service URI (includes `?ssl-mode=REQUIRED`)
    - `AUTH_SECRET` — `openssl rand -base64 32`
-   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` — e.g. Brevo or Resend free tier
+   - `RESEND_API_KEY` — from resend.com → API Keys (triggers Resend SDK path)
+   - `SMTP_FROM` — `Loopline <noreply@yourdomain.com>` (verified Resend domain)
    - `NEXT_PUBLIC_APP_URL` — your Vercel deployment URL
 4. Vercel auto-detects pnpm, runs `postinstall` (prisma generate), then `next build`
 5. Run `prisma migrate deploy` once against the Aiven DB to apply migrations:
