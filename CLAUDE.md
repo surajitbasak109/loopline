@@ -116,9 +116,10 @@ auth.config.ts                                  # Edge-safe NextAuth config for 
 proxy.ts                                        # Next.js 16 proxy — protects /api/admin/* and /dashboard/*
 auth.ts                                         # NextAuth config: Credentials provider, JWT strategy, session callbacks
 lib/validations/register.ts                     # shared Zod schema for registration (used by API + frontend)
-components/ui/Button.tsx                        # reusable button (primary/secondary/ghost, loading spinner)
+components/ui/Button.tsx                        # reusable button (primary/secondary/ghost/danger, loading spinner)
 components/ui/Input.tsx                         # reusable input (label, error, hint, prefix slot)
 components/ui/Alert.tsx                         # reusable alert (error/success/info)
+components/ui/Modal.tsx                         # reusable modal (backdrop, Escape-to-close, click-outside-to-close)
 app/(www)/page.tsx                              # homepage / landing page
 app/(app)/(auth)/layout.tsx                     # centered bg-gray-50 shell shared by auth pages
 app/(app)/(auth)/login/page.tsx                 # login form
@@ -154,7 +155,8 @@ components/Dashboard/StatsCard.tsx       # stat card (label + number)
 components/Dashboard/StatusBadge.tsx     # coloured pill for PostStatus values
 components/Dashboard/PostsTable.tsx      # client: filter tabs, inline status change, delete
 components/Dashboard/ChangelogList.tsx   # client: entry list, create form, publish, delete
-components/Dashboard/OrgSettings.tsx     # client: org name/slug/API-key display with copy button
+components/Dashboard/OrgSettings.tsx     # client: org name/slug/API-key (hidden by default, eye toggle, copy, regenerate via modal)
+app/api/admin/org/regenerate-key/route.ts       # POST — generates new pk_ key, persists, returns it
 app/(app)/(dashboard)/dashboard/feedback/page.tsx   # server page — fetches posts, passes to PostsTable
 app/(app)/(dashboard)/dashboard/changelog/page.tsx  # server page — fetches entries, passes to ChangelogList
 app/(app)/(dashboard)/dashboard/settings/page.tsx   # server page — fetches org, passes to OrgSettings
@@ -253,6 +255,10 @@ test DB.
   - `/dashboard/settings` — org name, slug, publishable API key with one-click copy
   - Client components define local PostStatus types (no @prisma/client import); server
     pages query Prisma directly and serialize dates before passing to client components
+- API key management:
+  - Key hidden by default; eye-icon toggle reveals/masks it (prefix `pk_` always visible)
+  - "Regenerate key" opens a `Modal` confirmation before calling `POST /api/admin/org/regenerate-key`
+  - `Button` gained a `danger` variant (red); `Modal` is reusable for any confirmation dialog
 - Public changelog pages (ISR):
   - `GET /changelog/[orgSlug]` — published entries list; 404 if org not found
   - `GET /changelog/[orgSlug]/[entrySlug]` — full entry; drafts return 404
