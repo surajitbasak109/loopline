@@ -158,6 +158,8 @@ components/Dashboard/OrgSettings.tsx     # client: org name/slug/API-key display
 app/(app)/(dashboard)/dashboard/feedback/page.tsx   # server page — fetches posts, passes to PostsTable
 app/(app)/(dashboard)/dashboard/changelog/page.tsx  # server page — fetches entries, passes to ChangelogList
 app/(app)/(dashboard)/dashboard/settings/page.tsx   # server page — fetches org, passes to OrgSettings
+app/(www)/changelog/[orgSlug]/page.tsx              # public changelog list (ISR, revalidate=60)
+app/(www)/changelog/[orgSlug]/[entrySlug]/page.tsx  # public changelog entry detail (ISR, marked for MD→HTML)
 ```
 
 ## Environment
@@ -251,10 +253,15 @@ test DB.
   - `/dashboard/settings` — org name, slug, publishable API key with one-click copy
   - Client components define local PostStatus types (no @prisma/client import); server
     pages query Prisma directly and serialize dates before passing to client components
+- Public changelog pages (ISR):
+  - `GET /changelog/[orgSlug]` — published entries list; 404 if org not found
+  - `GET /changelog/[orgSlug]/[entrySlug]` — full entry; drafts return 404
+  - `revalidate = 60` + `dynamicParams = true`; `generateStaticParams` pre-builds known slugs
+  - `marked` renders body markdown → HTML; styled with Tailwind arbitrary variants (no plugin)
+  - `generateMetadata` for proper `<title>` tags
 
 ### Pending (roughly in build order)
-1. Public changelog page (ISR)
-2. CI/CD pipeline + deployment
+1. CI/CD pipeline + deployment
 
 ## Conventions
 
