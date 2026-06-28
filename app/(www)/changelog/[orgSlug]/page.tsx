@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import ChangelogPagination, {
-  type PageLimit,
-} from "@/components/Changelog/ChangelogPagination";
+import ChangelogPagination from "@/components/Changelog/ChangelogPagination";
+import { type PageLimit } from "@/components/ui/Pagination";
 
 export const revalidate = 60;
 export const dynamicParams = true;
@@ -112,7 +111,7 @@ export default async function ChangelogIndexPage({
                       })}
                     </p>
                   </div>
-                  <span className="text-gray-300 flex-shrink-0 mt-0.5">→</span>
+                  <span className="text-gray-300 shrink-0 mt-0.5">→</span>
                 </Link>
               ))}
             </div>

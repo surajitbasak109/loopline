@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Pagination, type PageLimit } from "@/components/ui/Pagination";
 
 type Entry = {
   id: string;
@@ -12,17 +13,38 @@ type Entry = {
 
 type FormData = { title: string; body: string; slug: string };
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export default function ChangelogList({
   initialEntries,
 }: {
   initialEntries: Entry[];
 }) {
   const [entries, setEntries] = useState(initialEntries);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState<PageLimit>(10);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormData>({ title: "", body: "", slug: "" });
   const [formError, setFormError] = useState<string | null>(null);
   const [formBusy, setFormBusy] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+
+  const totalPages = Math.max(1, Math.ceil(entries.length / limit));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = entries.slice(
+    (currentPage - 1) * limit,
+    currentPage * limit,
+  );
+  function changeLimit(newLimit: PageLimit) {
+    setLimit(newLimit);
+    setPage(1);
+  }
 
   function autoSlug(title: string) {
     return title
@@ -53,6 +75,7 @@ export default function ChangelogList({
       { ...data.entry, createdAt: new Date().toISOString() },
       ...prev,
     ]);
+    setPage(1);
     setForm({ title: "", body: "", slug: "" });
     setShowForm(false);
     setFormBusy(false);
@@ -77,11 +100,12 @@ export default function ChangelogList({
   async function deleteEntry(id: string, title: string) {
     if (!confirm(`Delete "${title}"?`)) return;
     setBusy(id);
-    const res = await fetch(`/api/admin/changelog/${id}`, {
-      method: "DELETE",
-    });
+    const res = await fetch(`/api/admin/changelog/${id}`, { method: "DELETE" });
     if (res.ok) {
-      setEntries((prev) => prev.filter((e) => e.id !== id));
+      const next = entries.filter((e) => e.id !== id);
+      setEntries(next);
+      const newTotalPages = Math.max(1, Math.ceil(next.length / limit));
+      if (currentPage > newTotalPages) setPage(newTotalPages);
     }
     setBusy(null);
   }
@@ -184,57 +208,68 @@ export default function ChangelogList({
           No changelog entries yet.
         </p>
       ) : (
-        <div className="flex flex-col gap-3">
-          {entries.map((entry) => (
-            <div
-              key={entry.id}
-              className="bg-white rounded-xl border border-gray-100 px-5 py-4 flex items-center gap-4"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-900 truncate">
-                    {entry.title}
+        <>
+          <div className="flex flex-col gap-3">
+            {paginated.map((entry) => (
+              <div
+                key={entry.id}
+                className="bg-white rounded-xl border border-gray-100 px-5 py-4 flex items-center gap-4"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-gray-900 truncate">
+                      {entry.title}
+                    </p>
+                    {entry.publishedAt ? (
+                      <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded font-medium shrink-0">
+                        Published
+                      </span>
+                    ) : (
+                      <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded font-medium shrink-0">
+                        Draft
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5 font-mono">
+                    {entry.slug}
                   </p>
-                  {entry.publishedAt ? (
-                    <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded font-medium flex-shrink-0">
-                      Published
-                    </span>
-                  ) : (
-                    <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded font-medium flex-shrink-0">
-                      Draft
-                    </span>
-                  )}
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5 font-mono">
-                  {entry.slug}
+                <p className="text-xs text-gray-400 whitespace-nowrap">
+                  {formatDate(entry.publishedAt ?? entry.createdAt)}
                 </p>
-              </div>
-              <p className="text-xs text-gray-400 whitespace-nowrap">
-                {entry.publishedAt
-                  ? new Date(entry.publishedAt).toLocaleDateString()
-                  : new Date(entry.createdAt).toLocaleDateString()}
-              </p>
-              <div className="flex items-center gap-4 flex-shrink-0">
-                {!entry.publishedAt && (
+                <div className="flex items-center gap-4 shrink-0">
+                  {!entry.publishedAt && (
+                    <button
+                      onClick={() => publish(entry.id)}
+                      disabled={busy === entry.id}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-50 cursor-pointer"
+                    >
+                      Publish
+                    </button>
+                  )}
                   <button
-                    onClick={() => publish(entry.id)}
+                    onClick={() => deleteEntry(entry.id, entry.title)}
                     disabled={busy === entry.id}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-50 cursor-pointer"
+                    className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50 cursor-pointer"
                   >
-                    Publish
+                    Delete
                   </button>
-                )}
-                <button
-                  onClick={() => deleteEntry(entry.id, entry.title)}
-                  disabled={busy === entry.id}
-                  className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50 cursor-pointer"
-                >
-                  Delete
-                </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          <div className="mt-4">
+            <Pagination
+              page={currentPage}
+              limit={limit}
+              total={entries.length}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              onLimitChange={changeLimit}
+            />
+          </div>
+        </>
       )}
     </div>
   );
