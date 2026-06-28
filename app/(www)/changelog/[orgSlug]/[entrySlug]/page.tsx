@@ -7,14 +7,18 @@ export const revalidate = 60;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const entries = await prisma.changelogEntry.findMany({
-    where: { publishedAt: { not: null } },
-    select: { slug: true, organization: { select: { slug: true } } },
-  });
-  return entries.map((e) => ({
-    orgSlug: e.organization.slug,
-    entrySlug: e.slug,
-  }));
+  try {
+    const entries = await prisma.changelogEntry.findMany({
+      where: { publishedAt: { not: null } },
+      select: { slug: true, organization: { select: { slug: true } } },
+    });
+    return entries.map((e) => ({
+      orgSlug: e.organization.slug,
+      entrySlug: e.slug,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({

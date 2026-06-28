@@ -20,8 +20,12 @@ function parseParams(raw: { page?: string; limit?: string }) {
 }
 
 export async function generateStaticParams() {
-  const orgs = await prisma.organization.findMany({ select: { slug: true } });
-  return orgs.map((o) => ({ orgSlug: o.slug }));
+  try {
+    const orgs = await prisma.organization.findMany({ select: { slug: true } });
+    return orgs.map((o) => ({ orgSlug: o.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({
