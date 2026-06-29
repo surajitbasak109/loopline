@@ -26,6 +26,8 @@ function parseDbUrl(url: string) {
     user,
     password,
     database,
+    connectTimeout: 10000,
+    socketTimeout: 60000,
     ...(ssl ? { ssl: { rejectUnauthorized: false } } : {}),
   };
 }
