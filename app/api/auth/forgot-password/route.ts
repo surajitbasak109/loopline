@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
     data: { resetToken: hashed, resetTokenExpiry: expiry },
   });
 
-  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/reset-password?token=${plain}`;
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const resetUrl = `${appUrl}/reset-password?token=${plain}`;
   const { subject, html } = resetPasswordEmail(resetUrl);
   await sendEmail({ to: email, subject, html });
 

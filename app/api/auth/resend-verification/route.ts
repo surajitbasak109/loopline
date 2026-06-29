@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
     data: { verifyToken: hashed },
   });
 
-  const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth/verify-email?token=${plain}`;
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const verifyUrl = `${appUrl}/api/auth/verify-email?token=${plain}`;
   const { subject, html } = verifyEmailTemplate(verifyUrl);
   await sendEmail({ to: user.email, subject, html });
 
